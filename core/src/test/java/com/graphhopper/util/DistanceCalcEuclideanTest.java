@@ -21,9 +21,66 @@ package com.graphhopper.util;
 import com.graphhopper.util.shapes.GHPoint;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class DistanceCalcEuclideanTest {
+
+   @Test
+    public void testCalcDistSamePoint() {
+        DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
+        assertEquals(0.0, distCalc.calcDist(10.0, 20.0, 10.0, 20.0), 1e-12);
+    }
+
+    @Test
+    public void testCalcDistNaN() {
+        DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
+        assertTrue(Double.isNaN(distCalc.calcDist(Double.NaN, 0, 0, 0)));
+    }
+
+    @Test
+    void returnsFirstPointWhenFZero() {
+        DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
+        GHPoint p = distCalc.intermediatePoint(0.0, 10.0, 20.0, 30.0, 40.0);
+        assertEquals(10.0, p.getLat(), 1e-9);
+        assertEquals(20.0, p.getLon(), 1e-9);
+    }
+
+    @Test
+    void returnsSecondPointWhenFOne() {
+        DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
+        GHPoint p = distCalc.intermediatePoint(1.0, 10.0, 20.0, 30.0, 40.0);
+        assertEquals(30.0, p.getLat(), 1e-9);
+        assertEquals(40.0, p.getLon(), 1e-9);
+    }
+
+    @Test
+    void midpointIsCorrect() {
+        DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
+        GHPoint p = distCalc.intermediatePoint(0.5, 0.0, 0.0, 10.0, 10.0);
+        assertEquals(5.0, p.getLat(), 1e-9);
+        assertEquals(5.0, p.getLon(), 1e-9);
+    }
+
+    @Test
+    void symmetricPointsGiveSameMidpoint() {
+        DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
+        GHPoint p1 = distCalc.intermediatePoint(0.5, 0.0, 0.0, 10.0, 10.0);
+        GHPoint p2 = distCalc.intermediatePoint(0.5, 10.0, 10.0, 0.0, 0.0);
+        assertEquals(p1.getLat(), p2.getLat(), 1e-9);
+        assertEquals(p1.getLon(), p2.getLon(), 1e-9);
+    }
+
+    @Test
+    void latLonWithinRange() {
+        DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
+        double lat1 = -20, lon1 = -30, lat2 = 40, lon2 = 60;
+        double f = 0.3;
+        GHPoint p = distCalc.intermediatePoint(f, lat1, lon1, lat2, lon2);
+        assertTrue(p.getLat() >= Math.min(lat1, lat2) - 1e-9);
+        assertTrue(p.getLat() <= Math.max(lat1, lat2) + 1e-9);
+        assertTrue(p.getLon() >= Math.min(lon1, lon2) - 1e-9);
+        assertTrue(p.getLon() <= Math.max(lon1, lon2) + 1e-9);
+    }
 
     @Test
     public void testCrossingPointToEdge() {
