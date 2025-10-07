@@ -1,0 +1,112 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+
+\begin{document}
+
+\begin{titlepage}
+    \begin{center}
+        \Large UNIVERSIT\'E DE MONTR\'EAL\\[4cm]
+        \Large \textbf{Tâche 2 - Documentation}\\[4cm]
+        \Large Par \\
+        Cédric Guévremont (20266532) \\
+        Rima Boujenane (20235550)\\[4cm]
+        \large TRAVAIL PR\'ESENT\'E \`A BENOIT BEAUDRY \\
+        DANS LE CADRE DU COURS IFT 3913 \\
+        QUALITÉ DU LOGICIEL ET MÉTRIQUES\\[6cm]
+        10 OCTOBRE 2025
+    \end{center}
+\end{titlepage}
+
+\section*{Documentation des cas de test - \texttt{DistanceCalcEuclidean}}
+
+\textbf{Contexte général.}  
+Les tests suivants ont été conçus pour vérifier le comportement de la classe \texttt{DistanceCalcEuclidean}, responsable du calcul de distances et de points intermédiaires entre coordonnées géographiques (latitude, longitude).
+
+\subsection*{Test 1 - \texttt{testCalcDistSamePoint}}
+\textbf{Intention :} Vérifier que la distance euclidienne entre deux points identiques est nulle.  
+
+\textbf{Motivation des données :} Cas limite fondamental (A = B) qui doit retourner 0 et détecte des erreurs élémentaires (offset, permutations de coordonnées, mutations arithmétiques).  
+
+\textbf{Oracle :}  
+Par définition de la distance euclidienne 2D :  
+\[
+d(A, A) = \sqrt{(lat_A - lat_A)^2 + (lon_A - lon_A)^2} = 0
+\]
+La valeur attendue est donc $0.0$ avec une tolérance de $10^{-12}$.
+
+\subsection*{Test 2 - \texttt{testCalcDistNaN}}
+\textbf{Intention :} Confirmer la gestion des entrées invalides (\texttt{NaN}) : la distance doit être \texttt{NaN}.  
+
+\textbf{Motivation des données :} Vérifier la robustesse du calcul et la propagation correcte des erreurs flottantes. Évite qu’un résultat numérique “valide” soit produit par accident.  
+
+\textbf{Oracle :}  
+Selon la norme IEEE-754, toute opération impliquant un \texttt{NaN} retourne \texttt{NaN}.  
+Ainsi, \texttt{calcDist(NaN, 0, 0, 0)} doit satisfaire \texttt{Double.isNaN(...)}.
+
+\subsection*{Test 3 - \texttt{returnsFirstPointWhenFZero}}
+\textbf{Intention :} Vérifier qu’à $f = 0$, le point intermédiaire correspond exactement au premier point.  
+
+\textbf{Motivation des données :} Cas limite gauche de l’intervalle d’interpolation $[0,1]$, sensible aux inversions de coefficients $(1-f)$ et $f$.  
+
+\textbf{Oracle :}  
+L’interpolation linéaire 2D est donnée par :
+\[
+P = (1-f) \cdot A + f \cdot B
+\]
+Pour $f=0$, on obtient $P=A$.  
+Les valeurs attendues sont donc $\text{lat}=10.0$, $\text{lon}=20.0$ (tolérance $10^{-9}$).
+
+\subsection*{Test 4 - \texttt{returnsSecondPointWhenFOne}}
+\textbf{Intention :} Vérifier qu’à $f = 1$, le point intermédiaire correspond exactement au second point.  
+
+\textbf{Motivation des données :} Cas limite droite de l’intervalle, complémentaire du test précédent.  
+
+\textbf{Oracle :}  
+\[
+P = (1-f) \cdot A + f \cdot B \quad \Rightarrow \quad P = B \text{ lorsque } f=1
+\]
+Les valeurs attendues sont $\text{lat}=30.0$, $\text{lon}=40.0$ (tolérance $10^{-9}$).
+
+\subsection*{Test 5 - \texttt{midpointIsCorrect}}
+\textbf{Intention :} Valider que le milieu ($f = 0.5$) donne la moyenne arithmétique des coordonnées.  
+
+\textbf{Motivation des données :} Le milieu est un repère simple, sensible aux inversions de signe et erreurs d’échelle.  
+
+\textbf{Oracle :}  
+\[
+P = 0.5 \cdot A + 0.5 \cdot B
+\]
+Entre $(0,0)$ et $(10,10)$, on attend $(5,5)$ avec une tolérance de $10^{-9}$.
+
+\subsection*{Test 6 - \texttt{symmetricPointsGiveSameMidpoint}}
+\textbf{Intention :} Vérifier la symétrie de l’interpolation à $f=0.5$ : échanger les points $A$ et $B$ ne change pas le résultat.  
+
+\textbf{Motivation des données :} Propriété fondamentale de l’interpolation linéaire ; sensible à toute asymétrie d’implémentation.  
+
+\textbf{Oracle :}  
+\[
+0.5 \cdot A + 0.5 \cdot B = 0.5 \cdot B + 0.5 \cdot A
+\]
+Les deux midpoints doivent être identiques (écart maximal $10^{-9}$).
+
+\subsection*{Test 7 - \texttt{latLonWithinRange}}
+\textbf{Intention :} S’assurer que pour $0 \leq f \leq 1$, les coordonnées $P_{lat}$ et $P_{lon}$ du point interpolé se situent toujours dans l’intervalle défini par les deux points d’origine.  
+
+\textbf{Motivation des données :} Vérifie l’invariant de convexité : l’interpolation linéaire doit produire un point compris entre A et B, sans dépassement (“overshoot”).  
+
+\textbf{Oracle :}  
+Étant donné :
+\[
+P = (1-f) \cdot A + f \cdot B \quad \text{avec} \quad f \in [0,1],
+\]
+chaque coordonnée de $P$ est une combinaison convexe de celles de $A$ et $B$.  
+Ainsi :
+\[
+\min(A_{lat}, B_{lat}) \leq P_{lat} \leq \max(A_{lat}, B_{lat}) \quad \text{et} \quad
+\min(A_{lon}, B_{lon}) \leq P_{lon} \leq \max(A_{lon}, B_{lon})
+\]
+(tolérance $10^{-9}$).
+
+
+\end{document}
