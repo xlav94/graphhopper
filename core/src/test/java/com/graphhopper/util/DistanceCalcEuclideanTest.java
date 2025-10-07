@@ -38,7 +38,7 @@ public class DistanceCalcEuclideanTest {
     }
 
     @Test
-    void returnsFirstPointWhenFZero() {
+    public void returnsFirstPointWhenFZero() {
         DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
         GHPoint p = distCalc.intermediatePoint(0.0, 10.0, 20.0, 30.0, 40.0);
         assertEquals(10.0, p.getLat(), 1e-9);
@@ -46,7 +46,7 @@ public class DistanceCalcEuclideanTest {
     }
 
     @Test
-    void returnsSecondPointWhenFOne() {
+    public void returnsSecondPointWhenFOne() {
         DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
         GHPoint p = distCalc.intermediatePoint(1.0, 10.0, 20.0, 30.0, 40.0);
         assertEquals(30.0, p.getLat(), 1e-9);
@@ -54,7 +54,7 @@ public class DistanceCalcEuclideanTest {
     }
 
     @Test
-    void midpointIsCorrect() {
+    public void midpointIsCorrect() {
         DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
         GHPoint p = distCalc.intermediatePoint(0.5, 0.0, 0.0, 10.0, 10.0);
         assertEquals(5.0, p.getLat(), 1e-9);
@@ -62,7 +62,7 @@ public class DistanceCalcEuclideanTest {
     }
 
     @Test
-    void symmetricPointsGiveSameMidpoint() {
+    public void symmetricPointsGiveSameMidpoint() {
         DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
         GHPoint p1 = distCalc.intermediatePoint(0.5, 0.0, 0.0, 10.0, 10.0);
         GHPoint p2 = distCalc.intermediatePoint(0.5, 10.0, 10.0, 0.0, 0.0);
@@ -71,7 +71,7 @@ public class DistanceCalcEuclideanTest {
     }
 
     @Test
-    void latLonWithinRange() {
+    public void latLonWithinRange() {
         DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
         double lat1 = -20, lon1 = -30, lat2 = 40, lon2 = 60;
         double f = 0.3;
