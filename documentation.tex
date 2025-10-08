@@ -108,5 +108,52 @@ Ainsi :
 \]
 (tolérance $10^{-9}$).
 
+\section*{Résumé des scores PIT}
 
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Mesure} & \textbf{Sans tests} & \textbf{Avec les nouveaux tests} & \textbf{Différence} \\
+\hline
+Line Coverage & 62\% (21/34) & 79\% (27/34) & +17\% \\
+\hline
+Mutation Coverage & 48\% (27/56) & 68\% (38/56) & +20\% \\
+\hline
+Test Strength & 59\% (27/46) & 70\% (38/54) & +11\% \\
+\hline
+\end{tabular}
+
+\section*{Mutants nouvellement détectés}
+
+\begin{table}[h!]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|c|l|c|}
+\hline
+\textbf{Ligne} & \textbf{Mutation}  & \textbf{Statut avant} \\
+\hline
+34 & 1. replaced double return with 0.0d for com/graphhopper/util/DistanceCalcEuclidean::calcDist & NO\_COVERAGE \\
+\hline
+64 & 1. Replaced double subtraction with addition & SURVIVED Covering tests \\
+\hline
+65 & 1. Replaced double subtraction with addition & SURVIVED Covering tests \\
+\hline
+66 & 1. replaced double return with 0.0d for com/graphhopper/util/DistanceCalcEuclidean::calcNormalizedDist & SURVIVED Covering tests \\
+\hline
+98 & 1. Replaced double subtraction with addition & NO\_COVERAGE \\
+\hline
+99 & 1. Replaced double multiplication with division & NO\_COVERAGE \\
+\hline
+99 & 2. Replaced double addition with subtraction & NO\_COVERAGE \\
+\hline
+100 & 1. Replaced double multiplication with division & NO\_COVERAGE \\
+\hline
+100 & 2. Replaced double addition with subtraction & NO\_COVERAGE \\
+\hline
+101 & 1. replaced return value with null for com/graphhopper/util/DistanceCalcEuclidean::intermediatePoint & NO\_COVERAGE \\
+\hline
+\end{tabular}%
+}
+\caption{Liste des 11 mutants nouvellement détectés grâce aux nouveaux tests}
+\label{tab:new_mutants}
+\end{table}
 \end{document}
