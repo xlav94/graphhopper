@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DistanceCalcEuclideanTest {
-
    @Test
     public void testCalcDistSamePoint() {
         DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
