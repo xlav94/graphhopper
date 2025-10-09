@@ -171,6 +171,7 @@ Test Strength & 59\% (27/46) & 70\% (38/54) & +11\% \\
 \end{table}
 
 
+
 \subsection*{Mutants détectés}
 Sur les 56 mutants générés par PIT, 11 nouveaux mutants ont été détectés grâce aux nouveaux tests.  
 La majorité de ces mutants concernent des remplacements d’opérateurs arithmétiques dans les méthodes \texttt{calcDist()} et \texttt{calcNormalizedDist()} (par exemple, inversion d’addition/soustraction ou modification du retour).  
@@ -208,5 +209,30 @@ En résumé :
 \end{itemize}
 
 Ces résultats montrent que la suite de tests actuelle améliore nettement la robustesse du code, tout en laissant quelques zones non couvertes qui expliquent la survie partielle de certains mutants.
+
+\newpage
+\section*{Test avec Java Faker - \texttt{testCalcNormalizedEdgeDistance\_RandomValues}}
+
+\textbf{Intention :}  
+Vérifier la robustesse et la stabilité numérique de la méthode
+\texttt{calcNormalizedEdgeDistance()} lorsque celle-ci est appliquée à des coordonnées aléatoires et réalistes, générées automatiquement à l’aide de la librairie \texttt{java-faker}.
+
+\textbf{Motivation des données :}  
+Les valeurs aléatoires simulées par \texttt{Faker} reproduisent des coordonnées géographiques plausibles
+(latitudes entre $-90$ et $90$, longitudes entre $-180$ et $180$).  
+Ce choix permet de tester le comportement de la méthode sur un large domaine d’entrées, sans se limiter à des cas fixes ou idéalisés.
+
+\textbf{Oracle :}  
+L’oracle repose sur plusieurs invariants mathématiques de la distance euclidienne :
+\begin{itemize}
+  \item la distance normalisée (somme des carrés) ne peut jamais être négative ;
+  \item elle ne doit produire ni \texttt{NaN} ni valeur infinie ;
+  \item elle doit être exactement nulle lorsque les points d’entrée sont identiques.
+\end{itemize}
+Ces propriétés permettent de vérifier la cohérence générale du calcul, même sans connaître la valeur exacte attendue pour chaque jeu de données aléatoire.
+
+\textbf{Commentaires :}  
+Ce test met en valeur l’utilisation de la librairie \texttt{java-faker} pour la génération automatisée de données de test.
+Il renforce la fiabilité globale du module en validant des propriétés fondamentales sur un ensemble d’entrées variées, plutôt que sur des cas unitaires prédéterminés.
 
 \end{document}
