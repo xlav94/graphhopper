@@ -1,6 +1,7 @@
 \documentclass[a4paper,10pt]{article}
 \usepackage[a4paper, margin=1in]{geometry}
 \usepackage{amsmath, amssymb}
+\usepackage{graphicx}
 
 \begin{document}
 
@@ -108,8 +109,16 @@ Ainsi :
 \]
 (tolérance $10^{-9}$).
 
-\section*{Résumé des scores PIT}
+\newpage
 
+\section*{Analyse des résultats de l’analyse de mutation}
+
+L’exécution de PIT sur la classe \texttt{DistanceCalcEuclidean} a permis de comparer le comportement du code avant et après l’ajout des nouveaux tests unitaires.  
+Les scores globaux montrent une amélioration significative du \textit{line coverage} et du \textit{mutation coverage}, ce qui indique que les tests couvrent désormais un plus grand nombre de chemins d’exécution et détectent davantage de fautes injectées automatiquement.
+
+\begin{table}[h!]
+\centering
+{%
 \begin{tabular}{|l|c|c|c|}
 \hline
 \textbf{Mesure} & \textbf{Sans tests} & \textbf{Avec les nouveaux tests} & \textbf{Différence} \\
@@ -120,10 +129,14 @@ Mutation Coverage & 48\% (27/56) & 68\% (38/56) & +20\% \\
 \hline
 Test Strength & 59\% (27/46) & 70\% (38/54) & +11\% \\
 \hline
-\end{tabular}
+\end{tabular}%
+}
+\caption{Résumé des scores PIT}
+\label{tab:new_mutants}
+\end{table}
+
 
 \section*{Mutants nouvellement détectés}
-
 \begin{table}[h!]
 \centering
 \resizebox{\textwidth}{!}{%
@@ -156,4 +169,44 @@ Test Strength & 59\% (27/46) & 70\% (38/54) & +11\% \\
 \caption{Liste des 11 mutants nouvellement détectés grâce aux nouveaux tests}
 \label{tab:new_mutants}
 \end{table}
+
+
+\subsection*{Mutants détectés}
+Sur les 56 mutants générés par PIT, 11 nouveaux mutants ont été détectés grâce aux nouveaux tests.  
+La majorité de ces mutants concernent des remplacements d’opérateurs arithmétiques dans les méthodes \texttt{calcDist()} et \texttt{calcNormalizedDist()} (par exemple, inversion d’addition/soustraction ou modification du retour).  
+Ces résultats montrent que les nouveaux cas de test ciblant les calculs intermédiaires et les bornes de l’interpolation ont permis de renforcer la robustesse du code testé.
+
+\subsection*{Mutants survivants}
+Trois mutants sont restés survivants, tous situés dans la méthode \texttt{calcNormalizedDist()}, reproduite ci-dessous :
+
+\begin{verbatim}
+@Override
+public double calcNormalizedDist(double fromY, double fromX, double toY, double toX) {
+    double dX = fromX - toX;    // ligne 64
+    double dY = fromY - toY;    // ligne 65
+    return dX * dX + dY * dY;   // ligne 66
+}
+\end{verbatim}
+
+Ces mutants correspondent à des remplacements de la soustraction par une addition (\texttt{fromX + toX}, \texttt{fromY + toY}) ou à une modification de l’expression arithmétique finale.  
+Ils ont survécu car les tests actuels n’appellent pas directement la méthode \texttt{calcNormalizedDist()} : elle est uniquement sollicitée de manière indirecte via \texttt{calcDist()}.  
+Ainsi, PIT n’a pas pu observer d’effet visible de ces mutations sur les résultats vérifiés par les tests.  
+Autrement dit, la fonction a été exécutée dans le cadre de tests plus globaux, mais aucune assertion ne portait spécifiquement sur la valeur renvoyée par cette méthode.
+
+\subsection*{Mutants non couverts (NO\_COVERAGE)}
+Plusieurs mutants répertoriés dans le rapport présentent le statut \texttt{NO\_COVERAGE}.  
+Cela signifie que les lignes correspondantes n’ont tout simplement pas été exécutées par les tests existants, il ne s’agit pas d’un échec des assertions, mais d’une absence totale de couverture du code.  
+Ces mutants sont généralement situés dans des portions de code auxiliaires ou rarement utilisées (par exemple, des méthodes de normalisation ou des branches alternatives non atteintes).  
+Leur présence explique la différence restante entre la couverture de lignes (79\%) et la couverture de mutation (68\%).
+
+\subsection*{Interprétation globale}
+En résumé :
+\begin{itemize}
+  \item Les nouveaux tests ont permis de tuer plusieurs mutants dans les calculs de distance et d’interpolation, améliorant le \textit{mutation coverage} de +20 \%.
+  \item Les mutants restés survivants proviennent de la méthode \texttt{calcNormalizedDist()}, non testée directement, ce qui empêche PIT de détecter les effets des fautes injectées.
+  \item Les mutants marqués \texttt{NO\_COVERAGE} sont dus à des lignes non exécutées, et non à un manque de précision des assertions.
+\end{itemize}
+
+Ces résultats montrent que la suite de tests actuelle améliore nettement la robustesse du code, tout en laissant quelques zones non couvertes qui expliquent la survie partielle de certains mutants.
+
 \end{document}
