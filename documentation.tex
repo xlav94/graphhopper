@@ -1,0 +1,212 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+
+\begin{document}
+
+\begin{titlepage}
+    \begin{center}
+        \Large UNIVERSIT\'E DE MONTR\'EAL\\[4cm]
+        \Large \textbf{Tâche 2 - Documentation}\\[4cm]
+        \Large Par \\
+        Cédric Guévremont (20266532) \\
+        Rima Boujenane (20235550)\\[4cm]
+        \large TRAVAIL PR\'ESENT\'E \`A BENOIT BEAUDRY \\
+        DANS LE CADRE DU COURS IFT 3913 \\
+        QUALITÉ DU LOGICIEL ET MÉTRIQUES\\[6cm]
+        10 OCTOBRE 2025
+    \end{center}
+\end{titlepage}
+
+\section*{Documentation des cas de test - \texttt{DistanceCalcEuclidean}}
+
+\textbf{Contexte général.}  
+Les tests suivants ont été conçus pour vérifier le comportement de la classe \texttt{DistanceCalcEuclidean}, responsable du calcul de distances et de points intermédiaires entre coordonnées géographiques (latitude, longitude).
+
+\subsection*{Test 1 - \texttt{testCalcDistSamePoint}}
+\textbf{Intention :} Vérifier que la distance euclidienne entre deux points identiques est nulle.  
+
+\textbf{Motivation des données :} Cas limite fondamental (A = B) qui doit retourner 0 et détecte des erreurs élémentaires (offset, permutations de coordonnées, mutations arithmétiques).  
+
+\textbf{Oracle :}  
+Par définition de la distance euclidienne 2D :  
+\[
+d(A, A) = \sqrt{(lat_A - lat_A)^2 + (lon_A - lon_A)^2} = 0
+\]
+La valeur attendue est donc $0.0$ avec une tolérance de $10^{-12}$.
+
+\subsection*{Test 2 - \texttt{testCalcDistNaN}}
+\textbf{Intention :} Confirmer la gestion des entrées invalides (\texttt{NaN}) : la distance doit être \texttt{NaN}.  
+
+\textbf{Motivation des données :} Vérifier la robustesse du calcul et la propagation correcte des erreurs flottantes. Évite qu’un résultat numérique “valide” soit produit par accident.  
+
+\textbf{Oracle :}  
+Selon la norme IEEE-754, toute opération impliquant un \texttt{NaN} retourne \texttt{NaN}.  
+Ainsi, \texttt{calcDist(NaN, 0, 0, 0)} doit satisfaire \texttt{Double.isNaN(...)}.
+
+\subsection*{Test 3 - \texttt{returnsFirstPointWhenFZero}}
+\textbf{Intention :} Vérifier qu’à $f = 0$, le point intermédiaire correspond exactement au premier point.  
+
+\textbf{Motivation des données :} Cas limite gauche de l’intervalle d’interpolation $[0,1]$, sensible aux inversions de coefficients $(1-f)$ et $f$.  
+
+\textbf{Oracle :}  
+L’interpolation linéaire 2D est donnée par :
+\[
+P = (1-f) \cdot A + f \cdot B
+\]
+Pour $f=0$, on obtient $P=A$.  
+Les valeurs attendues sont donc $\text{lat}=10.0$, $\text{lon}=20.0$ (tolérance $10^{-9}$).
+
+\subsection*{Test 4 - \texttt{returnsSecondPointWhenFOne}}
+\textbf{Intention :} Vérifier qu’à $f = 1$, le point intermédiaire correspond exactement au second point.  
+
+\textbf{Motivation des données :} Cas limite droite de l’intervalle, complémentaire du test précédent.  
+
+\textbf{Oracle :}  
+\[
+P = (1-f) \cdot A + f \cdot B \quad \Rightarrow \quad P = B \text{ lorsque } f=1
+\]
+Les valeurs attendues sont $\text{lat}=30.0$, $\text{lon}=40.0$ (tolérance $10^{-9}$).
+
+\subsection*{Test 5 - \texttt{midpointIsCorrect}}
+\textbf{Intention :} Valider que le milieu ($f = 0.5$) donne la moyenne arithmétique des coordonnées.  
+
+\textbf{Motivation des données :} Le milieu est un repère simple, sensible aux inversions de signe et erreurs d’échelle.  
+
+\textbf{Oracle :}  
+\[
+P = 0.5 \cdot A + 0.5 \cdot B
+\]
+Entre $(0,0)$ et $(10,10)$, on attend $(5,5)$ avec une tolérance de $10^{-9}$.
+
+\subsection*{Test 6 - \texttt{symmetricPointsGiveSameMidpoint}}
+\textbf{Intention :} Vérifier la symétrie de l’interpolation à $f=0.5$ : échanger les points $A$ et $B$ ne change pas le résultat.  
+
+\textbf{Motivation des données :} Propriété fondamentale de l’interpolation linéaire ; sensible à toute asymétrie d’implémentation.  
+
+\textbf{Oracle :}  
+\[
+0.5 \cdot A + 0.5 \cdot B = 0.5 \cdot B + 0.5 \cdot A
+\]
+Les deux midpoints doivent être identiques (écart maximal $10^{-9}$).
+
+\subsection*{Test 7 - \texttt{latLonWithinRange}}
+\textbf{Intention :} S’assurer que pour $0 \leq f \leq 1$, les coordonnées $P_{lat}$ et $P_{lon}$ du point interpolé se situent toujours dans l’intervalle défini par les deux points d’origine.  
+
+\textbf{Motivation des données :} Vérifie l’invariant de convexité : l’interpolation linéaire doit produire un point compris entre A et B, sans dépassement (“overshoot”).  
+
+\textbf{Oracle :}  
+Étant donné :
+\[
+P = (1-f) \cdot A + f \cdot B \quad \text{avec} \quad f \in [0,1],
+\]
+chaque coordonnée de $P$ est une combinaison convexe de celles de $A$ et $B$.  
+Ainsi :
+\[
+\min(A_{lat}, B_{lat}) \leq P_{lat} \leq \max(A_{lat}, B_{lat}) \quad \text{et} \quad
+\min(A_{lon}, B_{lon}) \leq P_{lon} \leq \max(A_{lon}, B_{lon})
+\]
+(tolérance $10^{-9}$).
+
+\newpage
+
+\section*{Analyse des résultats de l’analyse de mutation}
+
+L’exécution de PIT sur la classe \texttt{DistanceCalcEuclidean} a permis de comparer le comportement du code avant et après l’ajout des nouveaux tests unitaires.  
+Les scores globaux montrent une amélioration significative du \textit{line coverage} et du \textit{mutation coverage}, ce qui indique que les tests couvrent désormais un plus grand nombre de chemins d’exécution et détectent davantage de fautes injectées automatiquement.
+
+\begin{table}[h!]
+\centering
+{%
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Mesure} & \textbf{Sans tests} & \textbf{Avec les nouveaux tests} & \textbf{Différence} \\
+\hline
+Line Coverage & 62\% (21/34) & 79\% (27/34) & +17\% \\
+\hline
+Mutation Coverage & 48\% (27/56) & 68\% (38/56) & +20\% \\
+\hline
+Test Strength & 59\% (27/46) & 70\% (38/54) & +11\% \\
+\hline
+\end{tabular}%
+}
+\caption{Résumé des scores PIT}
+\label{tab:new_mutants}
+\end{table}
+
+
+\section*{Mutants nouvellement détectés}
+\begin{table}[h!]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|c|l|c|}
+\hline
+\textbf{Ligne} & \textbf{Mutation}  & \textbf{Statut avant} \\
+\hline
+34 & 1. replaced double return with 0.0d for com/graphhopper/util/DistanceCalcEuclidean::calcDist & NO\_COVERAGE \\
+\hline
+64 & 1. Replaced double subtraction with addition & SURVIVED Covering tests \\
+\hline
+65 & 1. Replaced double subtraction with addition & SURVIVED Covering tests \\
+\hline
+66 & 1. replaced double return with 0.0d for com/graphhopper/util/DistanceCalcEuclidean::calcNormalizedDist & SURVIVED Covering tests \\
+\hline
+98 & 1. Replaced double subtraction with addition & NO\_COVERAGE \\
+\hline
+99 & 1. Replaced double multiplication with division & NO\_COVERAGE \\
+\hline
+99 & 2. Replaced double addition with subtraction & NO\_COVERAGE \\
+\hline
+100 & 1. Replaced double multiplication with division & NO\_COVERAGE \\
+\hline
+100 & 2. Replaced double addition with subtraction & NO\_COVERAGE \\
+\hline
+101 & 1. replaced return value with null for com/graphhopper/util/DistanceCalcEuclidean::intermediatePoint & NO\_COVERAGE \\
+\hline
+\end{tabular}%
+}
+\caption{Liste des 11 mutants nouvellement détectés grâce aux nouveaux tests}
+\label{tab:new_mutants}
+\end{table}
+
+
+\subsection*{Mutants détectés}
+Sur les 56 mutants générés par PIT, 11 nouveaux mutants ont été détectés grâce aux nouveaux tests.  
+La majorité de ces mutants concernent des remplacements d’opérateurs arithmétiques dans les méthodes \texttt{calcDist()} et \texttt{calcNormalizedDist()} (par exemple, inversion d’addition/soustraction ou modification du retour).  
+Ces résultats montrent que les nouveaux cas de test ciblant les calculs intermédiaires et les bornes de l’interpolation ont permis de renforcer la robustesse du code testé.
+
+\subsection*{Mutants survivants}
+Trois mutants sont restés survivants, tous situés dans la méthode \texttt{calcNormalizedDist()}, reproduite ci-dessous :
+
+\begin{verbatim}
+@Override
+public double calcNormalizedDist(double fromY, double fromX, double toY, double toX) {
+    double dX = fromX - toX;    // ligne 64
+    double dY = fromY - toY;    // ligne 65
+    return dX * dX + dY * dY;   // ligne 66
+}
+\end{verbatim}
+
+Ces mutants correspondent à des remplacements de la soustraction par une addition (\texttt{fromX + toX}, \texttt{fromY + toY}) ou à une modification de l’expression arithmétique finale.  
+Ils ont survécu car les tests actuels n’appellent pas directement la méthode \texttt{calcNormalizedDist()} : elle est uniquement sollicitée de manière indirecte via \texttt{calcDist()}.  
+Ainsi, PIT n’a pas pu observer d’effet visible de ces mutations sur les résultats vérifiés par les tests.  
+Autrement dit, la fonction a été exécutée dans le cadre de tests plus globaux, mais aucune assertion ne portait spécifiquement sur la valeur renvoyée par cette méthode.
+
+\subsection*{Mutants non couverts (NO\_COVERAGE)}
+Plusieurs mutants répertoriés dans le rapport présentent le statut \texttt{NO\_COVERAGE}.  
+Cela signifie que les lignes correspondantes n’ont tout simplement pas été exécutées par les tests existants, il ne s’agit pas d’un échec des assertions, mais d’une absence totale de couverture du code.  
+Ces mutants sont généralement situés dans des portions de code auxiliaires ou rarement utilisées (par exemple, des méthodes de normalisation ou des branches alternatives non atteintes).  
+Leur présence explique la différence restante entre la couverture de lignes (79\%) et la couverture de mutation (68\%).
+
+\subsection*{Interprétation globale}
+En résumé :
+\begin{itemize}
+  \item Les nouveaux tests ont permis de tuer plusieurs mutants dans les calculs de distance et d’interpolation, améliorant le \textit{mutation coverage} de +20 \%.
+  \item Les mutants restés survivants proviennent de la méthode \texttt{calcNormalizedDist()}, non testée directement, ce qui empêche PIT de détecter les effets des fautes injectées.
+  \item Les mutants marqués \texttt{NO\_COVERAGE} sont dus à des lignes non exécutées, et non à un manque de précision des assertions.
+\end{itemize}
+
+Ces résultats montrent que la suite de tests actuelle améliore nettement la robustesse du code, tout en laissant quelques zones non couvertes qui expliquent la survie partielle de certains mutants.
+
+\end{document}
