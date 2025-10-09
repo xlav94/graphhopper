@@ -20,7 +20,7 @@ package com.graphhopper.util;
 
 import com.graphhopper.util.shapes.GHPoint;
 import org.junit.jupiter.api.Test;
-
+import com.github.javafaker.Faker;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DistanceCalcEuclideanTest {
@@ -79,6 +79,30 @@ public class DistanceCalcEuclideanTest {
         assertTrue(p.getLat() <= Math.max(lat1, lat2) + 1e-9);
         assertTrue(p.getLon() >= Math.min(lon1, lon2) - 1e-9);
         assertTrue(p.getLon() <= Math.max(lon1, lon2) + 1e-9);
+    }
+
+    // Java faker test
+    @Test
+    public void testCalcNormalizedEdgeDistance_RandomValues() {
+        Faker faker = new Faker();
+        DistanceCalcEuclidean distanceCalc = new DistanceCalcEuclidean();
+
+        double ry = faker.number().randomDouble(6, -90, 90);
+        double rx = faker.number().randomDouble(6, -180, 180);
+        double ay = faker.number().randomDouble(6, -90, 90);
+        double ax = faker.number().randomDouble(6, -180, 180);
+        double by = faker.number().randomDouble(6, -90, 90);
+        double bx = faker.number().randomDouble(6, -180, 180);
+
+        double result = distanceCalc.calcNormalizedEdgeDistance(ry, rx, ay, ax, by, bx);
+
+        assertFalse(Double.isNaN(result), "Le résultat ne doit pas être NaN");
+        assertFalse(Double.isInfinite(result), "Le résultat ne doit pas être infini");
+
+        assertTrue(result >= 0.0, "La distance au carré ne peut pas être négative");
+
+        double zeroDist = distanceCalc.calcNormalizedEdgeDistance(1, 1, 1, 1, 1, 1);
+        assertEquals(0.0, zeroDist, 1e-9, "La distance doit être 0 lorsque tous les points sont identiques");
     }
 
     @Test
