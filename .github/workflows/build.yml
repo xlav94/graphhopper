@@ -43,7 +43,7 @@ jobs:
 
       - name: Prepare for PIT Mutation Testing
         run: mvn -B -DskipTests -DskipITs -pl core -am install
-        
+
       - name: Run PIT Mutation Testing
         working-directory: core
         run: mvn -B test-compile org.pitest:pitest-maven:mutationCoverage
@@ -75,5 +75,6 @@ jobs:
             exit 1
           else
             echo "Le score de mutation est resté stable ou a augmenté."
+            echo $current > config/mutation_score.txt
           fi
 
