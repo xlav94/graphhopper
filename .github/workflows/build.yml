@@ -1,5 +1,9 @@
 name: Build and Test
 on: push
+
+permissions:
+  contents: write
+  
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -75,6 +79,28 @@ jobs:
             exit 1
           else
             echo "Le score de mutation est resté stable ou a augmenté."
-            echo $current > config/mutation_score.txt
           fi
+
+      - name: Update Mutation Score File for Next 
+        if: success()
+        run: |
+          set -euo pipefail
+          current=${{ steps.pit_coverage.outputs.current_pit_coverage }}
+          echo "$current" > config/mutation_score.txt
+
+      - name: Commit updated mutation score
+        if: success()
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet config/mutation_score.txt; then
+            echo "No changes in mutation score file to commit."
+            exit 0
+          fi
+
+          git add config/mutation_score.txt
+          git commit -m "Update mutation score to ${{ steps.pit_coverage.outputs.current_pit_coverage }}%"
+          git push
 
