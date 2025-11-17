@@ -22,8 +22,14 @@ import com.graphhopper.util.shapes.GHPoint;
 import org.junit.jupiter.api.Test;
 import com.github.javafaker.Faker;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class DistanceCalcEuclideanTest {
+   @Test
+    public void failOnPurpose() {
+        fail("Test échoué volontairement pour tester le BAUDRY-ROLL");
+    }
+    
    @Test
     public void testCalcDistSamePoint() {
         DistanceCalcEuclidean distCalc = new DistanceCalcEuclidean();
