@@ -39,7 +39,7 @@ jobs:
 
       - name: Run PIT Mutation Testing
         working-directory: core
-        run: run: mvn -B test-compile org.pitest:pitest-maven:mutationCoverage
+        run: mvn -B test-compile org.pitest:pitest-maven:mutationCoverage
 
       - name: Get current PIT Mutation Coverage Percentage
         id: pit_coverage
