@@ -1,0 +1,24 @@
+name: "Rickroll on failure"
+description: "Affiche un Rick Astley dans les logs lorsque les tests échouent."
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Baudry-Roll Activated
+      shell: bash
+      run: |
+        echo "╔══════════════════════════════════════════════════════════════════════════╗"
+        echo "║                          BAUDRY-ROLL ACTIVÉ                              ║"
+        echo "║                                                                          ║"
+        echo "║   Les tests ont échoué.                                                  ║"
+        echo "║   Benoît Baudry n’approuverait probablement pas…                         ║"
+        echo "║   Vous avez donc déclenché le légendaire BAUDRY-ROLL.                    ║"
+        echo "║                                                                          ║"
+        echo "║                       ♫ Never gonna give you up ♫                        ║"
+        echo "║                      ♫ Never gonna let you down  ♫                       ║"
+        echo "║                                                                          ║"
+        echo "║                     → https://youtu.be/dQw4w9WgXcQ                       ║"
+        echo "║                                                                          ║"
+        echo "║   Merci de considérer ceci comme une compensation émotionnelle           ║"
+        echo "║   académique.                                                            ║"
+        echo "╚══════════════════════════════════════════════════════════════════════════╝"

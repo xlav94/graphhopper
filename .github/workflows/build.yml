@@ -37,3 +37,43 @@ jobs:
       - name: Build ${{ matrix.java-version }}
         run: mvn -B clean test
 
+      - name: Rickroll on Failure
+        if: failure()
+        uses: ./.github/actions/rickroll
+
+      - name: Prepare for PIT Mutation Testing
+        run: mvn -B -DskipTests -DskipITs -pl core -am install
+        
+      - name: Run PIT Mutation Testing
+        working-directory: core
+        run: mvn -B test-compile org.pitest:pitest-maven:mutationCoverage
+
+      - name: Get current PIT Mutation Coverage Percentage
+        id: pit_coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          html_file="core/target/pit-reports/index.html"
+          echo "Using PIT HTML Report File: $html_file"
+
+          pit_score=$(bash scripts/pitest_score.sh "$html_file")
+          echo "Current PIT Mutation Coverage Score: $pit_score%"
+          echo "current_pit_coverage=${pit_score}" >> "$GITHUB_OUTPUT"
+
+      - name: Compare current PIT Coverage with previous run
+        shell: bash
+        run: |
+          set -euo pipefail
+          previous=$(tr -d ' \n\r' < config/mutation_score.txt)
+          current=${{ steps.pit_coverage.outputs.current_pit_coverage }}
+
+          echo "Previous PIT Mutation Coverage Score: $previous%"
+          echo "Current PIT Mutation Coverage Score: $current%"
+
+          if [ "$current" -lt "$previous" ]; then
+            echo "Le score de mutation a diminué de ${previous}% à ${current}%."
+            exit 1
+          else
+            echo "Le score de mutation est resté stable ou a augmenté."
+          fi
+
