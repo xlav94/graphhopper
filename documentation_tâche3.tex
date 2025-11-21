@@ -1,0 +1,319 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{float}
+
+\begin{document}
+
+\begin{titlepage}
+    \begin{center}
+        \Large UNIVERSIT\'E DE MONTR\'EAL\\[4cm]
+        \Large \textbf{Tâche 3 - Documentation}\\[4cm]
+        \Large Par \\
+        Cédric Guévremont (20266532) \\
+        Rima Boujenane (20235550)\\[4cm]
+        \large TRAVAIL PR\'ESENT\'E \`A BENOIT BEAUDRY \\
+        DANS LE CADRE DU COURS IFT 3913 \\
+        QUALITÉ DU LOGICIEL ET MÉTRIQUES\\[6cm]
+        21 NOVEMBRE 2025
+    \end{center}
+\end{titlepage}
+
+\section*{Documentation des modifications du Workflow GitHub Actions}
+
+L’objectif de cette tâche est d’intégrer un mécanisme automatisé de \textit{mutation testing} avec PIT dans le pipeline GitHub Actions, d’extraire automatiquement le score de mutation, puis de faire échouer le workflow si le score courant est inférieur à celui obtenu lors de la dernière exécution réussie. Ce mécanisme permet de détecter immédiatement les régressions en qualité de test.
+
+\section*{1. Choix de conception}
+
+\subsection*{1.1 Exécution ciblée de PIT}
+
+PIT est exécuté uniquement sur le module \texttt{core}, qui contient la majorité de la logique testée.  
+Ce choix réduit le temps de CI et évite des erreurs sur les modules annexes.  
+Les dépendances du module sont installées au préalable via :
+
+\begin{verbatim}
+mvn -B -DskipTests -DskipITs -pl core -am install
+\end{verbatim}
+
+\subsection*{1.2 Extraction du score depuis le rapport HTML}
+
+Un script Bash (\texttt{scripts/pitest\_score.sh}) parcourt le fichier \texttt{index.html} pour extraire la valeur de \emph{Mutation Coverage} à l’aide de \texttt{awk}.  
+Cette solution est simple, portable et indépendante du workflow.
+
+\subsection*{1.3 Baseline et persistance du score}
+
+Le score de mutation de la dernière exécution réussie est stocké dans un fichier versionné :
+
+\begin{center}
+\verb|config/mutation_score.txt|
+\end{center}
+
+À chaque exécution du pipeline :
+
+\begin{itemize}
+    \item le score courant est calculé,
+    \item il est comparé à la baseline,
+    \item si le score a diminué, le workflow échoue,
+    \item sinon, la baseline est mise à jour.
+\end{itemize}
+
+\textbf{Persistance entre exécutions.}  
+Le workflow met à jour le fichier localement \emph{et le pousse dans le dépôt} depuis GitHub Actions.  
+Ainsi, le prochain run utilisera toujours comme baseline le score du dernier workflow qui a réussi.
+
+\textbf{Impact de la matrice Java (24 et 25-ea).}  
+Les deux versions Java exécutent le pipeline, ce qui signifie que :
+
+\begin{quote}
+Le dernier job à se terminer (24 ou 25-ea) met à jour la baseline, car il pousse la nouvelle valeur dans le dépôt.
+\end{quote}
+
+Cette stratégie est suffisante pour le contexte du TP, car un seul fichier est modifié et il n’y a pas de contributeurs parallèles.  
+Cependant, dans un environnement industriel, on réserverait la mise à jour de la baseline à une seule configuration stable (par exemple Java 24) afin d’éviter les interactions concurrentes entre jobs de la matrice.
+
+\section*{2. Comparaison dans le pipeline}
+
+La comparaison se fait dans un step Bash :
+
+\begin{verbatim}
+previous=$(tr -d ' \n\r' < config/mutation_score.txt)
+current=${{ steps.pit_coverage.outputs.current_pit_coverage }}
+
+if [ "$current" -lt "$previous" ]; then
+    exit 1
+fi
+\end{verbatim}
+
+En cas de succès, le fichier est mis à jour et commité par GitHub Actions, assurant ainsi la continuité du mécanisme.
+
+\section*{3. Validation}
+
+\subsection*{3.1 Tests locaux}
+
+L’exécution de PIT, la génération du rapport HTML et l’extraction du score ont été validées localement avant l’intégration CI.
+
+\subsection*{3.2 Validation sur GitHub Actions (succès attendu)}
+
+Un premier \textit{push} a permis de confirmer que :
+
+\begin{itemize}
+    \item PIT génère correctement ses rapports;
+    \item le score est extrait et comparé;
+    \item le pipeline reste vert lorsque le score est stable.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{image3.png}
+    \caption{Exécution du pipeline montrant le comportement du pipeline en cas de score stable}
+    \label{fig:placeholder}
+\end{figure}
+
+\subsection*{3.3 Validation d’une régression PIT}
+
+En augmentant manuellement la valeur du fichier \verb|mutation_score.txt|, une régression simulée a fait échouer le pipeline comme prévu.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{image.png}
+    \caption{Exécution du pipeline montrant la détection d'une régression PIT.}
+    \label{fig:pit-regression}
+\end{figure}
+\newpage
+\section*{4. Action humoristique : « Baudry-Roll »}
+
+\subsection*{4.1 Objectif et choix de conception}
+
+Afin de rendre le pipeline plus informatif (et plus amusant) en cas d'échec, 
+nous avons créé une \emph{action composite GitHub} personnalisée appelée 
+«~Rickroll on failure~».  
+Cette action affiche dans les logs un encadré ASCII contenant un message humoristique 
+ainsi qu’un lien vers la célèbre vidéo de Rick Astley.
+
+Nous avons choisi de nommer l’étape principale affichée dans les logs 
+\emph{«~Baudry-Roll Activated~»}, un clin d'œil à Monsieur Baudry, notre professeur, 
+qui apprécie particulièrement l’humour dans le contexte du cours.
+
+L’action est invoquée automatiquement lorsqu’un job échoue, ce qui permet de
+terminer l’exécution du pipeline sur une note humoristique tout en signalant 
+clairement la présence d’une erreur.
+
+Plutôt que d’utiliser une action publique générique, nous avons choisi :
+\begin{itemize}
+    \item de créer une action locale (\verb|.github/actions/rickroll|),
+    \item d’y définir un format visuel personnalisé lié au contexte du cours,
+    \item d’assurer une intégration simple à l’aide de \verb|if: failure()| dans le workflow.
+\end{itemize}
+
+Cette conception permet de garder un contrôle complet sur le style, le texte affiché et
+l’intégration dans le pipeline.
+
+\subsection*{4.2 Intégration dans le workflow}
+
+L’action est appelée uniquement si l’étape Maven échoue :
+
+\begin{verbatim}
+- name: Build ${{ matrix.java-version }}
+  run: mvn -B clean test
+
+- name: Rickroll on Failure
+  if: failure()
+  uses: ./.github/actions/rickroll
+\end{verbatim}
+
+\subsection*{4.3 Validation}
+
+Pour valider l’action, un test volontairement erroné a été ajouté dans le module \texttt{core}.
+Cela a permis de confirmer que :
+
+\begin{itemize}
+    \item le pipeline échoue bien lorsque les tests ne passent pas ;
+    \item l’action « Baudry-Roll » s’exécute et apparaît correctement dans les logs.
+\end{itemize}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{image2.png}
+    \caption{Affichage obtenu du « Baudry-Roll » dans GitHub Actions}
+    \label{fig:placeholder}
+\end{figure}
+
+
+
+\newpage
+
+\section*{Documentation des cas de test -- \texttt{GHUtility}}
+
+\textbf{Contexte général.}  
+La classe \texttt{GHUtility} regroupe diverses méthodes utilitaires utilisées dans plusieurs composantes de GraphHopper. 
+Elle est volumineuse, hétérogène et contient plusieurs méthodes statiques comportant des branches conditionnelles 
+ou des comportements dépendants d'objets complexes comme \texttt{Graph}, \texttt{NodeAccess}, \texttt{EdgeIteratorState} 
+ou encore \texttt{BaseGraph}.  
+Dans le cadre du devoir, nous avons sélectionné trois méthodes présentant des comportements différents 
+(valide/invalide/exception), adaptées à des tests unitaires avec Mockito et permettant d’augmenter la couverture.
+
+Les tests portent sur :
+\begin{itemize}
+    \item \texttt{getAdjNode} : méthode simple mais avec une ramification cruciale.
+    \item \texttt{getProblems} : méthode complexe itérant sur un graphe, sensible à divers cas limites.
+    \item \texttt{getCommonNode} : méthode détectant des erreurs structurelles et lançant des exceptions.
+\end{itemize}
+
+Les classes suivantes ont été simulées (\textit{mockées}) car elles nécessitent un graphe complet 
+ou des structures internes difficiles à instancier à la main :
+\texttt{Graph}, \texttt{NodeAccess}, \texttt{EdgeExplorer}, \texttt{EdgeIterator}, \texttt{EdgeIteratorState}, 
+\texttt{BaseGraph}.  
+Leur comportement a été réduit à ce qui est strictement nécessaire pour atteindre les branches de code ciblées.
+
+\subsection*{Test 1 -- \texttt{testGetAdjNode\_withValidEdge}}
+
+\textbf{Intention :}  
+Vérifier que lorsque l'identifiant d'arête est valide, la méthode \texttt{getAdjNode} interroge correctement 
+le graphe et retourne le noeud adjacent fourni par \texttt{EdgeIteratorState}.  
+
+\textbf{Choix des classes simulées :}
+\begin{itemize}
+    \item \texttt{Graph} est mocké car un vrai graphe nécessite une structure interne complexe.
+    \item \texttt{EdgeIteratorState} est mocké pour contrôler précisément la valeur retournée par \texttt{getAdjNode()}.
+\end{itemize}
+
+\textbf{Définition des mocks :}
+\begin{itemize}
+    \item \texttt{graph.getEdgeIteratorState(edge, adjNode)} retourne un \texttt{EdgeIteratorState} simulé.
+    \item \texttt{edgeState.getAdjNode()} retourne une valeur arbitraire (42), permettant de vérifier l’aiguillage du code.
+\end{itemize}
+
+\textbf{Motivation des valeurs :}  
+Un identifiant d'arête positif (\texttt{edge = 5}) force la prise de la branche “valide”.  
+Le noeud adjacent retourné (42) est volontairement distinct de \texttt{adjNode = 7} pour s’assurer qu’il provient bien du mock.  
+
+\textbf{Oracle :}  
+La méthode doit retourner la valeur donnée par \texttt{edgeState.getAdjNode()}, soit 42.
+
+\subsection*{Test 2 -- \texttt{testGetAdjNode\_invalidEdge}}
+
+\textbf{Intention :}  
+Valider que lorsqu'un identifiant d'arête invalide est fourni, la méthode ne tente pas d'interroger le graphe 
+et retourne directement le noeud adjoint passé en paramètre.
+
+\textbf{Choix des classes simulées :}  
+Seul \texttt{Graph} est mocké, mais il ne doit jamais être appelé.  
+Ce test vérifie une propriété importante : éviter des appels invalides dans le cas d'une arête non valide.
+
+\textbf{Motivation des valeurs :}  
+Nous utilisons \texttt{edge = -1}, valeur explicitement non valide selon \texttt{Edge.isValid}.  
+\texttt{adjNode = 7} permet ensuite de vérifier que la méthode renvoie bien ce paramètre tel quel.
+
+\textbf{Oracle :}  
+\begin{itemize}
+    \item \texttt{getAdjNode} retourne exactement 7.
+    \item \texttt{graph.getEdgeIteratorState} ne doit jamais être invoqué (vérification Mockito).
+\end{itemize}
+
+\subsection*{Test 3 -- \texttt{testGetProblems\_InvalidLatitude}}
+
+\textbf{Intention :}  
+Vérifier que la méthode \texttt{getProblems} détecte correctement une latitude hors bornes 
+et ajoute un message d’erreur à la liste retournée.
+
+\textbf{Choix des classes simulées :}
+\begin{itemize}
+    \item \texttt{Graph} pour retourner un nombre minimal de nœuds.
+    \item \texttt{NodeAccess} pour fournir des coordonnées invalides.
+    \item \texttt{EdgeExplorer} et \texttt{EdgeIterator} pour simuler l’existence ou non d’arêtes.
+\end{itemize}
+
+\textbf{Définition des mocks :}
+\begin{itemize}
+    \item \texttt{graph.getNodes()} retourne 1 pour limiter l’itération.
+    \item \texttt{na.getLat(0)} retourne \texttt{200.0}, valeur invalide ($> 90^\circ$).
+    \item \texttt{iter.next()} retourne \texttt{false} pour indiquer l’absence d’arêtes et isoler le test 
+    sur la borne de latitude.
+\end{itemize}
+
+\textbf{Motivation des valeurs :}  
+Une latitude à 200.0 permet de franchir explicitement la condition :
+\[
+lat > 90 \ \text{ou}\ lat < -90
+\]
+Ainsi, nous testons un cas d’erreur simple, reproductible, et sans dépendance à une structure réelle de graphe.
+
+\textbf{Oracle :}  
+La liste retournée doit contenir un unique message mentionnant «~latitude~».
+
+\subsection*{Test 4 -- \texttt{testGetCommonNode\_LoopEdge\_ThrowsException}}
+
+\textbf{Intention :}  
+Vérifier que la méthode \texttt{getCommonNode} détecte un cas d’arête boucle (même nœud base et adjoint) 
+et lance l’exception \texttt{IllegalArgumentException} attendue.
+
+\textbf{Choix des classes simulées :}  
+\begin{itemize}
+    \item \texttt{BaseGraph} est mocké pour retourner deux états d’arêtes personnalisés.
+    \item \texttt{EdgeIteratorState} est mocké pour définir l’arête considérée comme une boucle.
+\end{itemize}
+
+\textbf{Définition des mocks :}
+\begin{itemize}
+    \item \texttt{e1.getBaseNode()} et \texttt{e1.getAdjNode()} retournent tous deux 4, créant ainsi une boucle.
+    \item \texttt{e2} est défini comme une arête normale pour isoler le test uniquement sur le cas d’erreur de \texttt{e1}.
+\end{itemize}
+
+\textbf{Motivation des valeurs :}  
+Le cas d’arête boucle est explicitement traité comme erreur dans le code source, ce qui en fait un excellent candidat
+pour tester la robustesse de la méthode.
+
+\textbf{Oracle :}  
+\texttt{getCommonNode(...)} doit lancer immédiatement une \texttt{IllegalArgumentException}.
+
+\section*{Conclusion}
+
+L’extension du pipeline GitHub Actions avec un module de mutation testing automatisé démontre comment des outils DevOps modernes peuvent être exploités pour garantir une qualité constante du code.
+La mise en place d’une baseline évolutive, l’extraction automatisée du score à partir des rapports HTML et l’intégration conditionnelle d’actions additionnelles montrent la puissance des workflows configurables.
+
+Les validations effectuées confirment que l’approche détecte efficacement les régressions, réagit correctement en cas d’erreur et fournit un retour immédiat aux développeurs.
+En somme, cette tâche a permis d’implémenter un pipeline CI/CD plus intelligent, plus autonome et marqué par une touche d’humour, tout en respectant les bonnes pratiques professionnelles.
+
+\end{document}
